@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<GridPane alignment="center" hgap="10" prefHeight="488.0" prefWidth="538.0" vgap="10"
+          xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8" fx:controller="sample.Controller">
+    <columnConstraints>
+        <ColumnConstraints/>
+        <ColumnConstraints/>
+    </columnConstraints>
+    <rowConstraints>
+        <RowConstraints/>
+        <RowConstraints/>
+    </rowConstraints>
+    <children>
+        <GridPane prefHeight="119.0" prefWidth="200.0">
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="92.0" minWidth="10.0" prefWidth="78.0"/>
+                <ColumnConstraints hgrow="SOMETIMES" maxWidth="140.0" minWidth="10.0" prefWidth="122.0"/>
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+            </rowConstraints>
+            <children>
+                <TextField fx:id="hostField" GridPane.columnIndex="1"/>
+                <Label text="Host"/>
+                <Label text="User" GridPane.rowIndex="1"/>
+                <Label text="Password" GridPane.rowIndex="2"/>
+                <TextField fx:id="usernameField" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                <TextField fx:id="passwordField" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                <Label text="Interval[sec]" GridPane.rowIndex="3"/>
+            </children>
+        </GridPane>
+        <GridPane GridPane.rowIndex="1" GridPane.vgrow="ALWAYS">
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+            </rowConstraints>
+            <children>
+                <Button fx:id="startButton" mnemonicParsing="false" onAction="#doStart" text="Start"/>
+                <Button fx:id="resetButton" mnemonicParsing="false" onAction="#doReset" text="Reset"
+                        GridPane.columnIndex="1"/>
+            </children>
+        </GridPane>
+        <TableView fx:id="tableView" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1"
+                   GridPane.hgrow="ALWAYS" GridPane.rowSpan="2" GridPane.vgrow="ALWAYS">
+            <columns>
+                <TableColumn prefWidth="75.0" text="Query"/>
+                <TableColumn prefWidth="75.0" text="Count"/>
+                <TableColumn prefWidth="75.0" text="Elapsed"/>
+            </columns>
+        </TableView>
+    </children>
+</GridPane>
