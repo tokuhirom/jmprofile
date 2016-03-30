@@ -1,3 +1,5 @@
 *.iml
 /.idea/
 /biuld/
+/out/
+/.gradle/
