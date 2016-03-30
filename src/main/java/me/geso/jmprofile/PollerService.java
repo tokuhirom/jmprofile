@@ -14,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PollerService extends ScheduledService<String> {
     private final Connection connection;
@@ -27,7 +28,7 @@ public class PollerService extends ScheduledService<String> {
         this.sampleDataObservableList = sampleDataObservableList;
         this.stateLabel = stateLabel;
         this.samples = 0;
-        this.data = new HashMap<>();
+        this.data = new ConcurrentHashMap<>();
     }
 
     @Override
