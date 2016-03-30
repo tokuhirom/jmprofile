@@ -30,6 +30,9 @@ public class Controller implements Initializable {
     TextField interval;
 
     @FXML
+    Label stateLabel;
+
+    @FXML
     TextField uriField;
 
     @FXML
@@ -68,7 +71,7 @@ public class Controller implements Initializable {
 
                 Connection connection = DriverManager.getConnection(buildUri());
 
-                pollerService = new PollerService(connection, sampleDataObservableList);
+                pollerService = new PollerService(connection, sampleDataObservableList, stateLabel);
                 pollerService.setPeriod(new Duration(Double.valueOf(interval.getText())));
                 pollerService.start();
 

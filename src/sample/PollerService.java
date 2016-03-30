@@ -5,6 +5,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.ScheduledService;
 import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Label;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -17,12 +18,14 @@ import java.util.Map;
 public class PollerService extends ScheduledService<String> {
     private final Connection connection;
     private final ObservableList<SampleData> sampleDataObservableList;
+    private Label stateLabel;
     private int samples;
     private final Map<String, Integer> data;
 
-    public PollerService(Connection connection, ObservableList<SampleData> sampleDataObservableList) {
+    public PollerService(Connection connection, ObservableList<SampleData> sampleDataObservableList, Label stateLabel) {
         this.connection = connection;
         this.sampleDataObservableList = sampleDataObservableList;
+        this.stateLabel = stateLabel;
         this.samples = 0;
         this.data = new HashMap<>();
     }
@@ -36,20 +39,21 @@ public class PollerService extends ScheduledService<String> {
                 // get samples
                 try {
                     samples++;
-                    PreparedStatement preparedStatement = connection.prepareStatement("SHOW FULL PROCESSLIST");
-                    ResultSet resultSet = preparedStatement.executeQuery();
-                    resultSet.next();
-                    while (resultSet.next()) {
-                        String info = resultSet.getString("Info");
-                        if ("SHOW FULL PROCESSLIST".equals(info)) {
-                            continue;
-                        }
-                        if (info != null) {
-                            String query = queryNormalizer.normalize(info);
-                            if (data.containsKey(query)) {
-                                data.put(query, data.get(query) + 1);
-                            } else {
-                                data.put(query, 1);
+                    try (PreparedStatement preparedStatement = connection.prepareStatement("SHOW FULL PROCESSLIST")) {
+                        try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                            while (resultSet.next()) {
+                                String info = resultSet.getString("Info");
+                                if ("SHOW FULL PROCESSLIST".equals(info)) {
+                                    continue;
+                                }
+                                if (info != null) {
+                                    String query = queryNormalizer.normalize(info);
+                                    if (data.containsKey(query)) {
+                                        data.put(query, data.get(query) + 1);
+                                    } else {
+                                        data.put(query, 1);
+                                    }
+                                }
                             }
                         }
                     }
@@ -74,6 +78,8 @@ public class PollerService extends ScheduledService<String> {
                                     .map(it -> new SampleData(it.getValue() / (samples * 100.0), it.getKey()))
                                     .toArray(SampleData[]::new)
                     );
+
+                    stateLabel.setText("Samples: " + samples + ", Data size: " + data.size());
                 });
 
                 return "";

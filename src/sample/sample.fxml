@@ -17,6 +17,7 @@
    <rowConstraints>
       <RowConstraints />
       <RowConstraints />
+      <RowConstraints />
    </rowConstraints>
    <children>
       <GridPane prefHeight="120.0" prefWidth="200.0">
@@ -59,11 +60,12 @@
             <TextField fx:id="uriField" editable="false" GridPane.columnSpan="2" GridPane.rowIndex="2" />
          </children>
       </GridPane>
-      <TableView fx:id="tableView" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowSpan="2" GridPane.vgrow="ALWAYS">
+      <TableView fx:id="tableView" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowSpan="3" GridPane.vgrow="ALWAYS">
         <columns>
           <TableColumn fx:id="valueColumn" text="Count" />
-          <TableColumn fx:id="queryColumn" minWidth="80.0" prefWidth="-1.0" resizable="false" text="Query" />
+          <TableColumn fx:id="queryColumn" minWidth="80.0" text="Query" />
         </columns>
       </TableView>
+      <Label fx:id="stateLabel" text="Samples:" GridPane.rowIndex="2" />
    </children>
 </GridPane>
