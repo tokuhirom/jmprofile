@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'application'
 
-mainClassName = "sample.Main"
+mainClassName = "me.geso.jmprofile.Main"
 
 repositories {
     jcenter()
@@ -13,6 +13,7 @@ dependencies {
     compile 'mysql:mysql-connector-java:5.1.38'
     compile 'org.apache.commons:commons-lang3:3.4'
     compile 'org.projectlombok:lombok:1.16.8'
+    compile 'org.assertj:assertj-core:3.4.0'
 
     testCompile 'junit:junit:4.12'
 }
