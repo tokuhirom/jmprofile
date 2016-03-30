@@ -75,7 +75,7 @@ public class PollerService extends ScheduledService<String> {
                     sampleDataObservableList.addAll(
                             data.entrySet()
                                     .stream()
-                                    .sorted((a, b) -> a.getValue() - b.getValue())
+                                    .sorted((a, b) -> b.getValue() - a.getValue())
                                     .map(it -> new SampleData(it.getValue() / (samples * 100.0), it.getKey()))
                                     .toArray(SampleData[]::new)
                     );
