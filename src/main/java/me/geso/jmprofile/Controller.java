@@ -47,6 +47,9 @@ public class Controller implements Initializable {
     @FXML
     TableColumn<SampleData, String> queryColumn;
 
+    @FXML
+    TableColumn<SampleData, String> userColumn;
+
     private PollerService pollerService;
 
     private final ObservableList<SampleData> sampleDataObservableList = FXCollections.synchronizedObservableList(FXCollections.observableArrayList());
@@ -55,17 +58,21 @@ public class Controller implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         uriElementUpdated();
         tableView.setItems(sampleDataObservableList);
-        valueColumn.setCellValueFactory(new PropertyValueFactory<SampleData, String>("value"));
-        queryColumn.setCellValueFactory(new PropertyValueFactory<SampleData, String>("query"));
+        valueColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
+        queryColumn.setCellValueFactory(new PropertyValueFactory<>("query"));
+        userColumn.setCellValueFactory(new PropertyValueFactory<>("user"));
     }
 
     public void doStart(ActionEvent actionEvent) {
         if (pollerService != null) {
             // stop previous job
             pollerService.cancel();
+            pollerService = null;
 
             startButton.setText("Start");
         } else {
+            sampleDataObservableList.clear();
+
             try {
                 Class.forName("com.mysql.jdbc.Driver").newInstance();
 

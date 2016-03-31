@@ -64,6 +64,7 @@
         <columns>
           <TableColumn fx:id="valueColumn" text="Count" />
           <TableColumn fx:id="queryColumn" minWidth="80.0" text="Query" />
+            <TableColumn fx:id="userColumn" minWidth="80.0" text="User" />
         </columns>
       </TableView>
       <Label fx:id="stateLabel" text="Samples:" GridPane.rowIndex="2" />

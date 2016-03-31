@@ -6,13 +6,13 @@ import javafx.concurrent.ScheduledService;
 import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
+import lombok.Data;
 
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,7 +21,7 @@ public class PollerService extends ScheduledService<String> {
     private final ObservableList<SampleData> sampleDataObservableList;
     private Label stateLabel;
     private int samples;
-    private final Map<String, Integer> data;
+    private final Map<QueryInfo, Integer> data;
 
     public PollerService(Connection connection, ObservableList<SampleData> sampleDataObservableList, Label stateLabel) {
         this.connection = connection;
@@ -44,15 +44,17 @@ public class PollerService extends ScheduledService<String> {
                         try (ResultSet resultSet = preparedStatement.executeQuery()) {
                             while (resultSet.next()) {
                                 String info = resultSet.getString("Info");
+                                String user = resultSet.getString("User");
                                 if ("SHOW FULL PROCESSLIST".equals(info)) {
                                     continue;
                                 }
                                 if (info != null) {
                                     String query = queryNormalizer.normalize(info);
-                                    if (data.containsKey(query)) {
-                                        data.put(query, data.get(query) + 1);
+                                    QueryInfo queryInfo = new QueryInfo(query, user);
+                                    if (data.containsKey(queryInfo)) {
+                                        data.put(queryInfo, data.get(query) + 1);
                                     } else {
-                                        data.put(query, 1);
+                                        data.put(queryInfo, 1);
                                     }
                                 }
                             }
@@ -86,5 +88,24 @@ public class PollerService extends ScheduledService<String> {
                 return "";
             }
         };
+    }
+
+    @Data
+    public static class QueryInfo {
+        private final String query;
+        private final String user;
+
+        public QueryInfo(String query, String user) {
+            this.query = query;
+            this.user = user;
+        }
+
+        public String getUser() {
+            return user;
+        }
+
+        public String getQuery() {
+            return query;
+        }
     }
 }
