@@ -11,8 +11,8 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception{
         Parent root = FXMLLoader.load(getClass().getClassLoader().getResource("jmprofile.fxml"));
-        primaryStage.setTitle("jmprofile");
-        primaryStage.setScene(new Scene(root, 300, 275));
+        primaryStage.setTitle("jmprofile - Real time mysql profiler");
+        primaryStage.setScene(new Scene(root, 640, 480));
         primaryStage.show();
     }
 

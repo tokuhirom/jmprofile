@@ -42,7 +42,16 @@ public class Controller implements Initializable {
     TableView<SampleData> tableView;
 
     @FXML
-    TableColumn<SampleData, String> valueColumn;
+    TableColumn<SampleData, String> meanRateColumn;
+
+    @FXML
+    TableColumn<SampleData, String> oneMinuteRateColumn;
+
+    @FXML
+    TableColumn<SampleData, String> fiveMinuteRateColumn;
+
+    @FXML
+    TableColumn<SampleData, String> fifteenMinuteRateColumn;
 
     @FXML
     TableColumn<SampleData, String> queryColumn;
@@ -58,7 +67,10 @@ public class Controller implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         uriElementUpdated();
         tableView.setItems(sampleDataObservableList);
-        valueColumn.setCellValueFactory(new PropertyValueFactory<>("value"));
+        meanRateColumn.setCellValueFactory(new PropertyValueFactory<>("meanRate"));
+        oneMinuteRateColumn.setCellValueFactory(new PropertyValueFactory<>("oneMinuteRate"));
+        fiveMinuteRateColumn.setCellValueFactory(new PropertyValueFactory<>("fiveMinuteRate"));
+        fifteenMinuteRateColumn.setCellValueFactory(new PropertyValueFactory<>("fifteenMinuteRate"));
         queryColumn.setCellValueFactory(new PropertyValueFactory<>("query"));
         userColumn.setCellValueFactory(new PropertyValueFactory<>("user"));
     }
@@ -105,10 +117,6 @@ public class Controller implements Initializable {
             stringBuilder.append("&password=").append(passwordField.getText());
         }
         return stringBuilder.toString();
-    }
-
-    public void doReset(ActionEvent actionEvent) {
-
     }
 
     public void uriElementUpdated() {

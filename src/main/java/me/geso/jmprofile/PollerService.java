@@ -1,5 +1,6 @@
 package me.geso.jmprofile;
 
+import com.codahale.metrics.Meter;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.concurrent.ScheduledService;
@@ -21,7 +22,7 @@ public class PollerService extends ScheduledService<String> {
     private final ObservableList<SampleData> sampleDataObservableList;
     private Label stateLabel;
     private int samples;
-    private final Map<QueryInfo, Integer> data;
+    private final Map<QueryInfo, Meter> data;
 
     public PollerService(Connection connection, ObservableList<SampleData> sampleDataObservableList, Label stateLabel) {
         this.connection = connection;
@@ -52,9 +53,11 @@ public class PollerService extends ScheduledService<String> {
                                     String query = queryNormalizer.normalize(info);
                                     QueryInfo queryInfo = new QueryInfo(query, user);
                                     if (data.containsKey(queryInfo)) {
-                                        data.put(queryInfo, data.get(query) + 1);
+                                        data.get(queryInfo).mark();
                                     } else {
-                                        data.put(queryInfo, 1);
+                                        Meter meter = new Meter();
+                                        meter.mark();
+                                        data.put(queryInfo, meter);
                                     }
                                 }
                             }
@@ -72,13 +75,14 @@ public class PollerService extends ScheduledService<String> {
                 }
 
                 // update table view
+                // TODO: should we update tableView in another thread?
                 Platform.runLater(() -> {
                     sampleDataObservableList.clear();
                     sampleDataObservableList.addAll(
                             data.entrySet()
                                     .stream()
-                                    .sorted((a, b) -> b.getValue() - a.getValue())
-                                    .map(it -> new SampleData(it.getValue() / (samples * 100.0), it.getKey()))
+                                    .sorted((a, b) -> (int)(b.getValue().getCount() - a.getValue().getCount()))
+                                    .map(it -> new SampleData(it.getValue(), it.getKey()))
                                     .toArray(SampleData[]::new)
                     );
 
