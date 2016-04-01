@@ -12,7 +12,7 @@ public class SampleData {
     private final String query;
     private final String user;
 
-    public SampleData(Meter meter, PollerService.QueryInfo queryInfo) {
+    public SampleData(Meter meter, QueryInfo queryInfo) {
         meanRate = String.format("%.3f", meter.getMeanRate());
         oneMinuteRate = String.format("%.3f", meter.getOneMinuteRate());
         fiveMinuteRate = String.format("%.3f", meter.getFiveMinuteRate());

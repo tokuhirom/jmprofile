@@ -1,13 +1,18 @@
-package me.geso.jmprofile;
+package me.geso.jmprofile.javafx;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.ScheduledService;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.util.Duration;
+import me.geso.jmprofile.SampleData;
+import me.geso.jmprofile.Stats;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.URL;
@@ -62,6 +67,7 @@ public class Controller implements Initializable {
     private PollerService pollerService;
 
     private final ObservableList<SampleData> sampleDataObservableList = FXCollections.synchronizedObservableList(FXCollections.observableArrayList());
+    private Stats stats = new Stats();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -73,6 +79,24 @@ public class Controller implements Initializable {
         fifteenMinuteRateColumn.setCellValueFactory(new PropertyValueFactory<>("fifteenMinuteRate"));
         queryColumn.setCellValueFactory(new PropertyValueFactory<>("query"));
         userColumn.setCellValueFactory(new PropertyValueFactory<>("user"));
+
+        // tableView updater
+        ScheduledService<String> svc = new ScheduledService<String>() {
+            protected Task<String> createTask() {
+                return new Task<String>() {
+                    protected String call() {
+                        Platform.runLater(() -> {
+                            sampleDataObservableList.setAll(stats.toStream()
+                                    .toArray(SampleData[]::new));
+                            stateLabel.setText("Data size: " + stats.size());
+                        });
+                        return null;
+                    }
+                };
+            }
+        };
+        svc.setPeriod(Duration.seconds(1));
+        svc.start();
     }
 
     public void doStart(ActionEvent actionEvent) {
@@ -90,21 +114,28 @@ public class Controller implements Initializable {
 
                 Connection connection = DriverManager.getConnection(buildUri());
 
-                pollerService = new PollerService(connection, sampleDataObservableList, stateLabel);
+                pollerService = new PollerService(
+                        connection,
+                        stats,
+                        e -> Platform.runLater(() -> showExceptionAlertDialog(e)));
                 pollerService.setPeriod(new Duration(Double.valueOf(interval.getText())));
                 pollerService.start();
 
                 startButton.setText("Stop");
             } catch (InstantiationException | IllegalAccessException
                     | ClassNotFoundException | SQLException | NumberFormatException e) {
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Exception");
-                alert.setHeaderText("Gah!!!! Exception was occurred.");
-                alert.setContentText(e.getMessage());
-
-                alert.showAndWait();
+                showExceptionAlertDialog(e);
             }
         }
+    }
+
+    private void showExceptionAlertDialog(Exception e) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Exception");
+        alert.setHeaderText("Gah!!!! Exception was occurred.");
+        alert.setContentText(e.getMessage());
+
+        alert.showAndWait();
     }
 
     private String buildUri() {

@@ -2,14 +2,13 @@ package me.geso.jmprofile;
 
 import com.codahale.metrics.Meter;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 public class Stats {
     private QueryNormalizer queryNormalizer = new QueryNormalizer();
-    private final Map<PollerService.QueryInfo, Meter> data;
+    private final Map<QueryInfo, Meter> data;
 
     public Stats() {
         this.data = new ConcurrentHashMap<>();
@@ -17,7 +16,7 @@ public class Stats {
 
     public void post(String sql, String user) {
         String query = queryNormalizer.normalize(sql);
-        PollerService.QueryInfo queryInfo = new PollerService.QueryInfo(query, user);
+        QueryInfo queryInfo = new QueryInfo(query, user);
         if (data.containsKey(queryInfo)) {
             data.get(queryInfo).mark();
         } else {
