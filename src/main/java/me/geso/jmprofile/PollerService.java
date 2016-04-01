@@ -1,6 +1,5 @@
 package me.geso.jmprofile;
 
-import com.codahale.metrics.Meter;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.concurrent.ScheduledService;
@@ -14,7 +13,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PollerService extends ScheduledService<String> {
@@ -22,20 +20,19 @@ public class PollerService extends ScheduledService<String> {
     private final ObservableList<SampleData> sampleDataObservableList;
     private Label stateLabel;
     private int samples;
-    private final Map<QueryInfo, Meter> data;
 
     public PollerService(Connection connection, ObservableList<SampleData> sampleDataObservableList, Label stateLabel) {
         this.connection = connection;
         this.sampleDataObservableList = sampleDataObservableList;
         this.stateLabel = stateLabel;
         this.samples = 0;
-        this.data = new ConcurrentHashMap<>();
     }
 
     @Override
     protected Task<String> createTask() {
         return new Task<String>() {
             private QueryNormalizer queryNormalizer = new QueryNormalizer();
+            private Stats stats = new Stats();
 
             protected String call() throws IOException {
                 // get samples
@@ -50,15 +47,7 @@ public class PollerService extends ScheduledService<String> {
                                     continue;
                                 }
                                 if (info != null) {
-                                    String query = queryNormalizer.normalize(info);
-                                    QueryInfo queryInfo = new QueryInfo(query, user);
-                                    if (data.containsKey(queryInfo)) {
-                                        data.get(queryInfo).mark();
-                                    } else {
-                                        Meter meter = new Meter();
-                                        meter.mark();
-                                        data.put(queryInfo, meter);
-                                    }
+                                    stats.post(info, user);
                                 }
                             }
                         }
@@ -79,14 +68,11 @@ public class PollerService extends ScheduledService<String> {
                 Platform.runLater(() -> {
                     sampleDataObservableList.clear();
                     sampleDataObservableList.addAll(
-                            data.entrySet()
-                                    .stream()
-                                    .sorted((a, b) -> (int)(b.getValue().getCount() - a.getValue().getCount()))
-                                    .map(it -> new SampleData(it.getValue(), it.getKey()))
+                            stats.toStream()
                                     .toArray(SampleData[]::new)
                     );
 
-                    stateLabel.setText("Samples: " + samples + ", Data size: " + data.size());
+                    stateLabel.setText("Samples: " + samples + ", Data size: " + stats.size());
                 });
 
                 return "";
