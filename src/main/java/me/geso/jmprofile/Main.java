@@ -12,6 +12,8 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception{
+        Class.forName("com.mysql.jdbc.Driver").newInstance();
+
         URL resource = getClass().getClassLoader().getResource("jmprofile.fxml");
         if (resource == null) {
             throw new NullPointerException("Cannot load jmprofile.fxml");

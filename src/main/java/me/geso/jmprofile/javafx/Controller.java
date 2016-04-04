@@ -3,23 +3,24 @@ package me.geso.jmprofile.javafx;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.concurrent.ScheduledService;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.util.Duration;
+import me.geso.jmprofile.QueryInfo;
 import me.geso.jmprofile.SampleData;
 import me.geso.jmprofile.Stats;
 import org.apache.commons.lang3.StringUtils;
+import rx.Observable;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.schedulers.Schedulers;
 
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ResourceBundle;
+import java.util.concurrent.TimeUnit;
 
 public class Controller implements Initializable {
     @FXML
@@ -64,10 +65,9 @@ public class Controller implements Initializable {
     @FXML
     TableColumn<SampleData, String> userColumn;
 
-    private PollerService pollerService;
-
     private final ObservableList<SampleData> sampleDataObservableList = FXCollections.synchronizedObservableList(FXCollections.observableArrayList());
     private Stats stats = new Stats();
+    private Subscription subscription;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -79,57 +79,74 @@ public class Controller implements Initializable {
         fifteenMinuteRateColumn.setCellValueFactory(new PropertyValueFactory<>("fifteenMinuteRate"));
         queryColumn.setCellValueFactory(new PropertyValueFactory<>("query"));
         userColumn.setCellValueFactory(new PropertyValueFactory<>("user"));
-
-        // tableView updater
-        ScheduledService<String> svc = new ScheduledService<String>() {
-            protected Task<String> createTask() {
-                return new Task<String>() {
-                    protected String call() {
-                        Platform.runLater(() -> {
-                            sampleDataObservableList.setAll(stats.toStream()
-                                    .toArray(SampleData[]::new));
-                            stateLabel.setText("Data size: " + stats.size());
-                        });
-                        return null;
-                    }
-                };
-            }
-        };
-        svc.setPeriod(Duration.seconds(1));
-        svc.start();
     }
 
     public void doStart(ActionEvent actionEvent) {
-        if (pollerService != null) {
+        if (subscription != null) {
             // stop previous job
-            pollerService.cancel();
-            pollerService = null;
+            subscription.unsubscribe();
+            subscription = null;
+
+            stats.clear();
 
             startButton.setText("Start");
         } else {
             sampleDataObservableList.clear();
 
             try {
-                Class.forName("com.mysql.jdbc.Driver").newInstance();
-
                 Connection connection = DriverManager.getConnection(buildUri());
 
-                pollerService = new PollerService(
-                        connection,
-                        stats,
-                        e -> Platform.runLater(() -> showExceptionAlertDialog(e)));
-                pollerService.setPeriod(new Duration(Double.valueOf(interval.getText())));
-                pollerService.start();
+                this.subscription = Observable.<QueryInfo>create(observer ->
+                        Schedulers.newThread().createWorker().schedulePeriodically(
+                                () -> showFullProcesslist(observer, connection),
+                                0,
+                                (long) (Double.valueOf(interval.getText()) * 1000),
+                                TimeUnit.MILLISECONDS))
+                        .doOnNext(info -> stats.post(info.getQuery(), info.getUser()))
+                        .debounce(500, TimeUnit.MILLISECONDS)
+                        .subscribe(it -> refreshTable(),
+                                e -> {
+                                    Platform.runLater(() -> showExceptionAlertDialog(e));
+                                });
 
                 startButton.setText("Stop");
-            } catch (InstantiationException | IllegalAccessException
-                    | ClassNotFoundException | SQLException | NumberFormatException e) {
+            } catch (SQLException | NumberFormatException e) {
                 showExceptionAlertDialog(e);
             }
         }
     }
 
-    private void showExceptionAlertDialog(Exception e) {
+    private void refreshTable() {
+        Platform.runLater(() -> {
+            sampleDataObservableList.setAll(stats.toStream()
+                    .toArray(SampleData[]::new));
+            stateLabel.setText("Data size: " + stats.size());
+        });
+    }
+
+    private void showFullProcesslist(Subscriber<? super QueryInfo> subscriber,
+                                     Connection connection) {
+        try (PreparedStatement preparedStatement = connection.prepareStatement(
+                "SHOW FULL PROCESSLIST"
+        )) {
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    String info = resultSet.getString("Info");
+                    String user = resultSet.getString("User");
+                    if ("SHOW FULL PROCESSLIST".equals(info)) {
+                        continue;
+                    }
+                    if (info != null) {
+                        subscriber.onNext(new QueryInfo(info, user));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            subscriber.onError(e);
+        }
+    }
+
+    private void showExceptionAlertDialog(Throwable e) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Exception");
         alert.setHeaderText("Gah!!!! Exception was occurred.");
