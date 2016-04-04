@@ -94,23 +94,30 @@ public class Controller implements Initializable {
             sampleDataObservableList.clear();
 
             try {
-                Connection connection = DriverManager.getConnection(buildUri());
-
-                this.subscription = Observable.<QueryInfo>create(observer ->
-                        Schedulers.newThread().createWorker().schedulePeriodically(
-                                () -> showFullProcesslist(observer, connection),
-                                0,
-                                (long) (Double.valueOf(interval.getText()) * 1000),
-                                TimeUnit.MILLISECONDS))
-                        .doOnNext(info -> stats.post(info.getQuery(), info.getUser()))
-                        .debounce(500, TimeUnit.MILLISECONDS)
+                this.subscription =
+                        Observable.<Connection>create(observer -> {
+                            try {
+                                observer.onNext(DriverManager.getConnection(buildUri()));
+                            } catch (SQLException e) {
+                                observer.onError(e);
+                            }
+                        }).flatMap(
+                                connection -> Observable.<QueryInfo>create(observer ->
+                                        Schedulers.newThread().createWorker().schedulePeriodically(
+                                                () -> showFullProcesslist(observer, connection),
+                                                0,
+                                                (long) (Double.valueOf(interval.getText()) * 1000),
+                                                TimeUnit.MILLISECONDS))
+                                        .doOnNext(info -> stats.post(info.getQuery(), info.getUser()))
+                        ).debounce(500, TimeUnit.MILLISECONDS)
                         .subscribe(it -> refreshTable(),
                                 e -> {
                                     Platform.runLater(() -> showExceptionAlertDialog(e));
                                 });
 
+
                 startButton.setText("Stop");
-            } catch (SQLException | NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 showExceptionAlertDialog(e);
             }
         }
