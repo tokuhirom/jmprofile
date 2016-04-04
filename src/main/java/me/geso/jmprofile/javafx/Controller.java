@@ -1,6 +1,6 @@
 package me.geso.jmprofile.javafx;
 
-import javafx.application.Platform;
+import javafx.beans.binding.Binding;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -8,6 +8,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyEvent;
 import me.geso.jmprofile.QueryInfo;
 import me.geso.jmprofile.SampleData;
 import me.geso.jmprofile.Stats;
@@ -15,12 +16,16 @@ import org.apache.commons.lang3.StringUtils;
 import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
+import rx.observables.JavaFxObservable;
+import rx.schedulers.JavaFxScheduler;
 import rx.schedulers.Schedulers;
+import rx.subscribers.JavaFxSubscriber;
 
 import java.net.URL;
 import java.sql.*;
 import java.util.ResourceBundle;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 public class Controller implements Initializable {
     @FXML
@@ -71,7 +76,7 @@ public class Controller implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        uriElementUpdated();
+        // init tableview
         tableView.setItems(sampleDataObservableList);
         meanRateColumn.setCellValueFactory(new PropertyValueFactory<>("meanRate"));
         oneMinuteRateColumn.setCellValueFactory(new PropertyValueFactory<>("oneMinuteRate"));
@@ -79,6 +84,20 @@ public class Controller implements Initializable {
         fifteenMinuteRateColumn.setCellValueFactory(new PropertyValueFactory<>("fifteenMinuteRate"));
         queryColumn.setCellValueFactory(new PropertyValueFactory<>("query"));
         userColumn.setCellValueFactory(new PropertyValueFactory<>("user"));
+
+        Observable<Boolean>[] observables =
+                Stream.concat(
+                        Stream.of(hostField, usernameField, passwordField)
+                                .map(field -> JavaFxObservable.fromNodeEvents(field, KeyEvent.KEY_RELEASED))
+                                .map(keyEventObservable -> keyEventObservable.map(it -> true)),
+                        Stream.of(Observable.create(observe -> observe.onNext(true)))
+                ).toArray(Observable[]::new);
+
+        Observable<String> uriObservable = Observable.merge(observables)
+                .observeOn(JavaFxScheduler.getInstance())
+                .map(it -> buildUri());
+        Binding<String> uriBinding = JavaFxSubscriber.toBinding(uriObservable);
+        uriField.textProperty().bind(uriBinding);
     }
 
     public void doStart(ActionEvent actionEvent) {
@@ -110,10 +129,9 @@ public class Controller implements Initializable {
                                                 TimeUnit.MILLISECONDS))
                                         .doOnNext(info -> stats.post(info.getQuery(), info.getUser()))
                         ).debounce(500, TimeUnit.MILLISECONDS)
-                        .subscribe(it -> refreshTable(),
-                                e -> {
-                                    Platform.runLater(() -> showExceptionAlertDialog(e));
-                                });
+                                .observeOn(JavaFxScheduler.getInstance())
+                                .subscribe(it -> refreshTable(),
+                                        this::showExceptionAlertDialog);
 
 
                 startButton.setText("Stop");
@@ -124,11 +142,9 @@ public class Controller implements Initializable {
     }
 
     private void refreshTable() {
-        Platform.runLater(() -> {
-            sampleDataObservableList.setAll(stats.toStream()
-                    .toArray(SampleData[]::new));
-            stateLabel.setText("Data size: " + stats.size());
-        });
+        sampleDataObservableList.setAll(stats.toStream()
+                .toArray(SampleData[]::new));
+        stateLabel.setText("Data size: " + stats.size());
     }
 
     private void showFullProcesslist(Subscriber<? super QueryInfo> subscriber,
@@ -172,10 +188,5 @@ public class Controller implements Initializable {
             stringBuilder.append("&password=").append(passwordField.getText());
         }
         return stringBuilder.toString();
-    }
-
-    public void uriElementUpdated() {
-        String uri = buildUri();
-        uriField.setText(uri);
     }
 }
