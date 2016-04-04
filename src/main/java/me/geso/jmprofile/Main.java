@@ -6,11 +6,17 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+import java.net.URL;
+
 public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception{
-        Parent root = FXMLLoader.load(getClass().getClassLoader().getResource("jmprofile.fxml"));
+        URL resource = getClass().getClassLoader().getResource("jmprofile.fxml");
+        if (resource == null) {
+            throw new NullPointerException("Cannot load jmprofile.fxml");
+        }
+        Parent root = FXMLLoader.load(resource);
         primaryStage.setTitle("jmprofile - Real time mysql profiler");
         primaryStage.setScene(new Scene(root, 640, 480));
         primaryStage.show();
